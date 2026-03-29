@@ -8,8 +8,17 @@ import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public abstract class HackModule {
+
+    private static final Set<String> STUB_MODULES = Set.of(
+        "KillAura", "Aimbot", "Flight", "Speed", "NoFall", "Jesus", "Step",
+        "Tracers", "Xray", "ChestStealer", "AutoFish", "Scaffold", "Nuker",
+        "Timer", "AntiBot", "AutoReconnect", "FastPlace", "WTap", "NameTags",
+        "FakeLag", "FriendSystem", "NameHider", "NoRender"
+    );
+
     private final String name;
     private final String description;
     private final ModuleCategory category;
@@ -67,6 +76,8 @@ public abstract class HackModule {
     public abstract void onTick(Minecraft mc);
     public void onEnable() {}
     public void onDisable() {}
+
+    public boolean isStub() { return STUB_MODULES.contains(name); }
 
     public String getName() { return name; }
     public String getDescription() { return description; }

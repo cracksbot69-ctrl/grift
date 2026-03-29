@@ -36,6 +36,7 @@ public class ClickGui extends Screen {
     private static final int SLIDER_BG = 0xFF2A2A2A;
     private static final int TOGGLE_OFF = 0xFF333333;
     private static final int TOGGLE_ON = 0xFFFFFFFF;
+    private static final int STUB_COLOR = 0xFF444444;
 
     // Panel positions (persistent)
     private static final Map<ModuleCategory, int[]> panelPos = new LinkedHashMap<>();
@@ -122,16 +123,18 @@ public class ClickGui extends Screen {
 
         int ry = py + PANEL_HEADER;
         for (HackModule m : mods) {
-            boolean hover = mx >= px && mx < px + PANEL_WIDTH && my >= ry && my < ry + MODULE_HEIGHT;
-            gfx.fill(px + 1, ry, px + PANEL_WIDTH - 1, ry + MODULE_HEIGHT, m.isEnabled() ? BG_MODULE_ON : (hover ? BG_MODULE_HOVER : BG_MODULE));
+            boolean stub = m.isStub();
+            boolean hover = !stub && mx >= px && mx < px + PANEL_WIDTH && my >= ry && my < ry + MODULE_HEIGHT;
+            gfx.fill(px + 1, ry, px + PANEL_WIDTH - 1, ry + MODULE_HEIGHT, stub ? BG_MODULE : (m.isEnabled() ? BG_MODULE_ON : (hover ? BG_MODULE_HOVER : BG_MODULE)));
 
-            if (m.isEnabled()) {
+            if (!stub && m.isEnabled()) {
                 gfx.fill(px + 1, ry, px + 3, ry + MODULE_HEIGHT, WHITE);
             }
 
-            gfx.drawString(font, m.getName(), px + 5, ry + 3, m.isEnabled() ? WHITE : GRAY, false);
+            int nameColor = stub ? STUB_COLOR : (m.isEnabled() ? WHITE : GRAY);
+            gfx.drawString(font, m.getName(), px + 5, ry + 3, nameColor, false);
 
-            if (!m.getSettings().isEmpty()) {
+            if (!stub && !m.getSettings().isEmpty()) {
                 gfx.drawString(font, expanded.contains(m) ? "v" : ">", px + PANEL_WIDTH - 11, ry + 3, DIM, false);
             }
 
@@ -213,9 +216,11 @@ public class ClickGui extends Screen {
             int ry = py + PANEL_HEADER;
             for (HackModule m : mods) {
                 if (mx >= px && mx < px + PANEL_WIDTH && my >= ry && my < ry + MODULE_HEIGHT) {
-                    if (button == 0) m.toggle();
-                    else if (button == 1 && !m.getSettings().isEmpty()) {
-                        if (expanded.contains(m)) expanded.remove(m); else expanded.add(m);
+                    if (!m.isStub()) {
+                        if (button == 0) m.toggle();
+                        else if (button == 1 && !m.getSettings().isEmpty()) {
+                            if (expanded.contains(m)) expanded.remove(m); else expanded.add(m);
+                        }
                     }
                     return true;
                 }
