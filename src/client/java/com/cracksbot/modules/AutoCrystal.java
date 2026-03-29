@@ -20,8 +20,10 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
+import net.minecraft.world.item.Items;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -75,7 +77,7 @@ public class AutoCrystal extends HackModule {
 
     // === Async Calculation ===
     private final AtomicReference<PlaceResult> bestPlaceResult = new AtomicReference<>();
-    private volatile boolean calcRunning = false;
+    private final AtomicBoolean calcRunning = new AtomicBoolean(false); // Race-Condition fix: AtomicBoolean statt volatile boolean
 
     // === D-Tap State ===
     private enum DtapState { IDLE, HIT_SENT, DONE }
@@ -95,6 +97,8 @@ public class AutoCrystal extends HackModule {
 
         LocalPlayer self  = mc.player;
         long now          = System.currentTimeMillis();
+        // Totem-Safety: bei wenig HP und kein Totem → nicht angreifen
+        if (!totemSafe(mc, self)) return;
         Player target     = findTarget(mc);
         if (target == null) return;
 
@@ -102,14 +106,16 @@ public class AutoCrystal extends HackModule {
         boolean facePlaceActive = facePlace.getValue()
             && DamageUtil.getTotalHealth(target) <= facePlaceHp.getValue();
 
-        // === Async Positions-Berechnung ===
-        if (!calcRunning) {
-            calcRunning = true;
+        // === Async Positions-Berechnung (Race-Condition-safe via AtomicBoolean.compareAndSet) ===
+        if (calcRunning.compareAndSet(false, true)) {
             final Player tgt = target;
             CompletableFuture.runAsync(() -> {
-                PlaceResult result = calcBestPlace(mc, tgt, self, facePlaceActive);
-                bestPlaceResult.set(result);
-                calcRunning = false;
+                try {
+                    PlaceResult result = calcBestPlace(mc, tgt, self, facePlaceActive);
+                    bestPlaceResult.set(result);
+                } finally {
+                    calcRunning.set(false); // immer freigeben, auch bei Exception
+                }
             });
         }
 
@@ -415,12 +421,35 @@ public class AutoCrystal extends HackModule {
 
     private Player findTarget(Minecraft mc) {
         Player nearest = null;
-        double dist = 10.0;
+        double bestScore = Double.MAX_VALUE;
         for (Player player : mc.level.players()) {
             if (player == mc.player || !player.isAlive()) continue;
+            // Freunde überspringen
+            if (FriendSystem.isFriend(player.getName().getString())) continue;
             double d = mc.player.distanceTo(player);
-            if (d < dist) { dist = d; nearest = player; }
+            if (d > range.getValue()) continue;
+            // Score: Distanz + HP*2 → niedriger = besseres Ziel
+            double score = d + player.getHealth() * 2;
+            if (score < bestScore) { bestScore = score; nearest = player; }
         }
         return nearest;
+    }
+
+    /** Prüft ob AutoTotem aktiv ist und genug Totems im Inventar sind. */
+    private boolean totemSafe(Minecraft mc, LocalPlayer self) {
+        // Wenn HP kritisch und kein Totem in Offhand → nicht angreifen
+        if (self.getHealth() <= 6.0f) {
+            boolean hasTotem = self.getOffhandItem().is(Items.TOTEM_OF_UNDYING);
+            if (!hasTotem) {
+                for (int i = 0; i < 36; i++) {
+                    if (self.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) {
+                        hasTotem = true;
+                        break;
+                    }
+                }
+            }
+            return hasTotem;
+        }
+        return true;
     }
 }
