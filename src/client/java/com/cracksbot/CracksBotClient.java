@@ -32,6 +32,7 @@ public class CracksBotClient implements ClientModInitializer {
         // Combat
         modules.add(new KillAura());
         modules.add(new AutoCrystal());
+        modules.add(new AutoCrystalPacket());
         modules.add(new CrystalAura());
         modules.add(new Criticals());
         modules.add(new Velocity());
