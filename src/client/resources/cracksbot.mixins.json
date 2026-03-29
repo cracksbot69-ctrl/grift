@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.cracksbot.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MinecraftClientMixin",
+    "ClientPlayerMixin",
+    "PlayerEntityMixin",
+    "LivingEntityHurtAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

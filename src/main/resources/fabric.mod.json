@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "cracksbot",
+  "version": "${version}",
+  "name": "CracksBot Crystal PVP",
+  "description": "Crystal PVP Client by CracksBot",
+  "authors": ["CracksBot"],
+  "license": "MIT",
+  "icon": "assets/modid/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.cracksbot.CracksBotClient"]
+  },
+  "mixins": [
+    {
+      "config": "cracksbot.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.2",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
